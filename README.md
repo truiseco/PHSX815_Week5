@@ -1,4 +1,4 @@
-# PHSX815 Spring 2021 Project 1
+# PHSX815 Spring 2021 Week 5
 
 ## Rejection Sampling
 
