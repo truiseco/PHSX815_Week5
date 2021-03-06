@@ -31,21 +31,11 @@ OUTOBJ = ./obj/
 # targets to make
 all: SinSim.x
 
-# recipe for building GeigerCounter.x
-#GeigerCounter.x:  $(SRCDIR)GeigerCounter.cpp $(OBJ_FILES) $(HH_FILES)
-#	$(CXX) $(CXXFLAGS) -o GeigerCounter.x $(OUTOBJ)/*.o $(GLIBS) $ $<
-#	touch GeigerCounter.x
-
-# recipe for building ExpHypoTest.x
-#ExpHypoTest.x:  $(SRCDIR)ExpHypoTest.cpp $(OBJ_FILES) $(HH_FILES)
-#	$(CXX) $(CXXFLAGS) -o ExpHypoTest.x $(OUTOBJ)/*.o $(GLIBS) $ $<
-#	touch ExpHypoTest.x
-
 SinSim.x: SinSim.o Random.o
-	g++ $(CXXFLAGS) -g -Wall SinSim.o Random.o $(GLIBS) -o SinSim.x
+	g++ $(CXXFLAGS) SinSim.o Random.o $(GLIBS) -o SinSim.x
 
 SinSim.o: SinSim.cpp Random.h
-	g++ $(CXXFLAGS) -g -Wall -c $(GLIBS) SinSim.cpp
+	g++ $(CXXFLAGS) -c $(GLIBS) SinSim.cpp
 
 Random.o: Random.h Random.cpp
 	g++ -std=c++17 -g -Wall -c Random.cpp

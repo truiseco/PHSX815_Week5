@@ -17,12 +17,13 @@
 #include "Random.h"
 
 // Directives and declarations for namespaces and namespace members
-using std::acos, std::string, std::cout, std::stoi, std::sqrt;
+using std::acos, std::string, std::cout, std::stoi, std::sqrt, std::asin;
 
 // Global definitions
 const double PI = acos(-1);
 Random rng;
 double bin_width;
+double NORM_F = 0.5;
 
 // Program-specific helper function declarations
 /*
@@ -38,15 +39,18 @@ bool strsame(string a, string b);
 double range(double min, double max);
 
 // Several proposal functions
-double Flat(double x);        // f(x) = 1
-double SemiCircle(double x);  // semicirlce of radius pi/2 centered at x = pi/2
-double SemiEllipse(double x); /* semiellipse with semi-minor axis 1
-                                semi-major axis pi/2 centered at x = pi/2 */
+double Sin(double x);
+double Flat(double x);
+double Parab(double x);
+
 // Plotting helper functions
-double PlotFlat(double* x, double* par);
-double PlotSemiCircle(double* x, double* par);
-double PlotSemiEllipse(double* x, double* par);
 double PlotSin(double* x, double* par);
+double PlotFlat(double* x, double* par);
+double PlotParab(double* x, double* par);
+
+// Sampling proposal functions
+double SampleFlat();
+double SampleParab();
 
 /*
 * Visualizes and saves results to RandomSin.png
@@ -73,13 +77,9 @@ int main(int argc, char** argv){
       argexists = 1;
       mode = 0;
     }
-    if(strsame(argv[i],"--circle")){
+    if(strsame(argv[i],"--parab")){
       argexists = 1;
       mode = 1;
-    }
-    if(strsame(argv[i],"--ellipse")){
-      argexists = 1;
-      mode = 2;
     }
     if(strsame(argv[i],"-Nsample")){
       argexists = 1;
@@ -105,8 +105,7 @@ int main(int argc, char** argv){
          << "  optional:\n"
          << "   --help(-h)          print options\n"
          << "   --flat              use flat proposal function (default)\n"
-         << "   --circle            use semicircular proposal function\n"
-         << "   --ellipse           use semi-elliptical proposal function\n";
+         << "   --parab             use parabolic proposal function\n";
 
     return 0;
   }
@@ -114,7 +113,6 @@ int main(int argc, char** argv){
   // Simulation/sampling/visualization helper variables
   double X = 0.0;
   double R = 0.0;
-  double ran = 0.0;
   int Nsuccess = 0;
   int Ntrial = 0;
 
@@ -125,16 +123,15 @@ int main(int argc, char** argv){
   // Simulate distribution via rejection sampling
   while(Nsuccess < Nsample){
     ++Ntrial;
-    X = range(0, PI);
-    R = sin(X);
+    if(mode == 0){
+      X = SampleFlat();
+      R = Sin(X)/Flat(X);
+    }
     if(mode == 1){
-      R /= SemiCircle(X);
+      X = SampleParab();
+      R = Sin(X)/Parab(X);
     }
-    if(mode == 2){
-      R /= SemiEllipse(X);
-    }
-    ran = rng.rand();
-    if(ran <= R){ // Accept and iterate
+    if(rng.rand() <= R){ // Accept and iterate
       hist->Fill(X);
       ++Nsuccess;
     } // Else reject and repeat
@@ -169,27 +166,31 @@ double range(double min, double max){
   return min + (max-min)*rng.rand();
 }
 
+double Sin(double x){
+  return NORM_F*sin(x);
+}
 double Flat(double x){
-  return 1;
+  return NORM_F*1;
 }
-double SemiCircle(double x){
-  return sqrt(-x*(x-PI));
-}
-double SemiEllipse(double x){
-  return (2/PI)*SemiCircle(x);
+double Parab(double x){
+  return NORM_F*(4/(PI*PI))*x*(PI-x);
 }
 
+double PlotSin(double* x, double* par){
+  return bin_width*Sin(x[0]);
+}
 double PlotFlat(double* x, double* par){
   return bin_width*Flat(x[0]);
 }
-double PlotSemiCircle(double* x, double* par){
-  return bin_width*SemiCircle(x[0]);
+double PlotParab(double* x, double* par){
+  return bin_width*Parab(x[0]);
 }
-double PlotSemiEllipse(double* x, double* par){
-  return bin_width*SemiEllipse(x[0]);
+
+double SampleFlat(){
+  return range(0,PI);
 }
-double PlotSin(double* x, double* par){
-  return bin_width*sin(x[0]);
+double SampleParab(){
+  return (PI/2.0)*(1 + (2*sin( asin( (2*PI*rng.rand() - PI) / PI ) / 3 )));
 }
 
 void PlotResults(TH1D* hist, int mode, int Nsample){
@@ -250,11 +251,10 @@ void PlotResults(TH1D* hist, int mode, int Nsample){
   TF1* proposal;
   if(mode == 0){
     proposal = new TF1("proposal", PlotFlat, 0.0, PI);
-  } else if(mode == 1){
-    proposal = new TF1("proposal", PlotSemiCircle, 0.0, PI);
   } else {
-    proposal = new TF1("proposal", PlotSemiEllipse, 0.0, PI);
+    proposal = new TF1("proposal", PlotParab, 0.0, PI);
   }
+
   proposal->SetLineColor(kRed+2);
   proposal->SetLineWidth(2);
   proposal->Draw("same");
